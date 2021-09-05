@@ -1,0 +1,10 @@
+git checkout 3b636f21daa6996e20ef97131a1c3649c3043304
+
+git diff HEAD~ HEAD > native_vp8_decode.patch
+
+git diff HEAD~ HEAD --name-only > native_vp8_decode.1
+
+git diff HEAD~ HEAD --name-only | xargs zip update.zip
+
+
+

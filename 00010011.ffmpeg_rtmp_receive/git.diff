@@ -1,0 +1,10 @@
+git checkout e5f2731c736c992948ca7e344ad7cfc93168a03f
+
+git diff HEAD~ HEAD > rtmp_receive.patch
+
+git diff HEAD~ HEAD --name-only > rtmp_receive.1
+
+git diff HEAD~ HEAD --name-only | xargs zip update.zip
+
+
+

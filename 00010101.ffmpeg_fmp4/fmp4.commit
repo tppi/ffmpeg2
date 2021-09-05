@@ -1,0 +1,10 @@
+commit 738b29cfb69b82965fd71d00da85f162b04a171e
+Author: Steven Liu <lq@chinaffmpeg.org>
+Date:   Fri Aug 4 21:38:55 2017 +0800
+
+    avformat/hlsenc: support fmp4 single file mode
+    
+    add byterange mode of the hls fmp4
+    
+    Reviewed-by: Derek Buitenhuis <derek.buitenhuis@gmail.com>
+    Signed-off-by: Steven Liu <lq@onvideo.cn>

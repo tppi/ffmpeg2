@@ -1,0 +1,7 @@
+commit 769168632764a2011f6ed24786e3fa34a214190b
+Author: Michael Niedermayer <michaelni@gmx.at>
+Date:   Wed Jun 6 13:31:30 2007 +0000
+
+    add mpegtsraw demuxer
+    
+    Originally committed as revision 9233 to svn://svn.ffmpeg.org/ffmpeg/trunk

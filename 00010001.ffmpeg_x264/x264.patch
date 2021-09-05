@@ -1,0 +1,276 @@
+diff --git a/configure b/configure
+index b6d965c..69c3abc 100755
+--- a/configure
++++ b/configure
+@@ -22,6 +22,7 @@ echo "  --enable-faad            enable faad support via libfaad [default=no]"
+ echo "  --enable-faadbin         build faad support with runtime linking [default=no]"
+ echo "  --enable-faac            enable faac support via libfaac [default=no]"
+ echo "  --enable-xvid            enable xvid support via xvidcore [default=no]"
++echo "  --enable-x264            enable H.264 encoding via x264 [default=no]"
+ echo "  --enable-mingw32         enable mingw32 native/cross windows compile"
+ echo "  --enable-a52             enable GPL'ed A52 support [default=no]"
+ echo "  --enable-a52bin          open liba52.so.0 at runtime [default=no]"
+@@ -158,6 +159,7 @@ faad="no"
+ faadbin="no"
+ faac="no"
+ xvid="no"
++x264="no"
+ a52="no"
+ a52bin="no"
+ dts="no"
+@@ -440,6 +442,8 @@ for opt do
+   ;;
+   --enable-xvid) xvid="yes"
+   ;;
++  --enable-x264) x264="yes"; extralibs="$extralibs -lx264"
++  ;;
+   --enable-dc1394) dc1394="yes"
+   ;;
+   --disable-vhook) vhook="no"
+@@ -515,6 +519,11 @@ if test "$gpl" != "yes"; then
+         fail="yes"
+     fi
+ 
++    if test "$x264" != "no"; then
++        echo "x264 is under GPL and --enable-gpl is not specified"
++        fail="yes"
++    fi
++
+     if test "$dts" != "no"; then
+         echo "libdts is under GPL and --enable-gpl is not specified"
+         fail="yes"
+@@ -1085,6 +1094,7 @@ echo "faad enabled     $faad"
+ echo "faadbin enabled  $faadbin"
+ echo "faac enabled     $faac"
+ echo "xvid enabled     $xvid"
++echo "x264 enabled     $x264"
+ echo "a52 support      $a52"
+ echo "a52 dlopened     $a52bin"
+ echo "dts support      $dts"
+@@ -1411,6 +1421,11 @@ if test "$xvid" = "yes" ; then
+   echo "CONFIG_XVID=yes" >> config.mak
+ fi
+ 
++if test "$x264" = "yes" ; then
++  echo "#define CONFIG_X264 1" >> $TMPH
++  echo "CONFIG_X264=yes" >> config.mak
++fi
++
+ if test "$mingw32" = "yes" ; then
+   echo "#define CONFIG_WIN32 1" >> $TMPH
+   echo "CONFIG_WIN32=yes" >> config.mak
+diff --git a/libavcodec/Makefile b/libavcodec/Makefile
+index 9c96bf8..4b790c4 100644
+--- a/libavcodec/Makefile
++++ b/libavcodec/Makefile
+@@ -105,6 +105,11 @@ OBJS+= xvidff.o
+ EXTRALIBS += -lxvidcore
+ endif
+ 
++ifeq ($(CONFIG_X264),yes)
++OBJS+= x264.o
++EXTRALIBS += -L$(X264_DIR) -lx264
++endif
++
+ ifeq ($(CONFIG_PP),yes)
+ ifeq ($(SHARED_PP),yes)
+ EXTRALIBS += -L$(VPATH)/libpostproc -lpostproc
+diff --git a/libavcodec/allcodecs.c b/libavcodec/allcodecs.c
+index bd3707b..7d47077 100644
+--- a/libavcodec/allcodecs.c
++++ b/libavcodec/allcodecs.c
+@@ -95,6 +95,9 @@ void avcodec_register_all(void)
+     register_avcodec(&dvvideo_encoder);
+     register_avcodec(&sonic_encoder);
+     register_avcodec(&sonic_ls_encoder);
++#ifdef CONFIG_X264
++    register_avcodec(&x264_encoder);
++#endif
+ #endif /* CONFIG_ENCODERS */
+     register_avcodec(&rawvideo_encoder);
+     register_avcodec(&rawvideo_decoder);
+diff --git a/libavcodec/avcodec.h b/libavcodec/avcodec.h
+index f9eef2f..41d7e5f 100644
+--- a/libavcodec/avcodec.h
++++ b/libavcodec/avcodec.h
+@@ -1911,6 +1911,7 @@ extern AVCodec zlib_encoder;
+ extern AVCodec sonic_encoder;
+ extern AVCodec sonic_ls_encoder;
+ extern AVCodec svq1_encoder;
++extern AVCodec x264_encoder;
+ 
+ extern AVCodec h263_decoder;
+ extern AVCodec h261_decoder;
+diff --git a/libavcodec/x264.c b/libavcodec/x264.c
+new file mode 100644
+index 0000000..3f3aba6
+--- /dev/null
++++ b/libavcodec/x264.c
+@@ -0,0 +1,167 @@
++/*
++ * H.264 encoding using the x264 library
++ * Copyright (C) 2005  Måns Rullgård <mru@inprovide.com>
++ *
++ * This library is free software; you can redistribute it and/or
++ * modify it under the terms of the GNU Lesser General Public
++ * License as published by the Free Software Foundation; either
++ * version 2 of the License, or (at your option) any later version.
++ *
++ * This library is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
++ * Lesser General Public License for more details.
++ *
++ * You should have received a copy of the GNU Lesser General Public
++ * License along with this library; if not, write to the Free Software
++ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
++ */
++
++#include "avcodec.h"
++#include <x264.h>
++
++typedef struct X264Context {
++    x264_param_t params;
++    x264_t *enc;
++    x264_picture_t pic;
++    AVFrame out_pic;
++} X264Context;
++
++static void
++X264_log(void *p, int level, const char *fmt, va_list args)
++{
++    static const int level_map[] = {
++	[X264_LOG_ERROR]   = AV_LOG_ERROR,
++	[X264_LOG_WARNING] = AV_LOG_ERROR,
++	[X264_LOG_INFO]    = AV_LOG_INFO,
++	[X264_LOG_DEBUG]   = AV_LOG_DEBUG
++    };
++
++    if(level < 0 || level > X264_LOG_DEBUG)
++	return;
++
++    av_vlog(p, level_map[level], fmt, args);
++}
++
++
++static int
++encode_nals(u_char *buf, int size, x264_nal_t *nals, int nnal)
++{
++    u_char *p = buf;
++    int i;
++
++    for(i = 0; i < nnal; i++){
++	int s = x264_nal_encode(p, &size, 1, nals + i);
++	if(s < 0)
++	    return -1;
++	p += s;
++    }
++
++    return p - buf;
++}
++
++extern int
++X264_frame(AVCodecContext *ctx, uint8_t *buf, int bufsize, void *data)
++{
++    X264Context *x4 = ctx->priv_data;
++    AVFrame *frame = data;
++    x264_nal_t *nal;
++    int nnal, i;
++    x264_picture_t pic_out;
++
++    x4->pic.img.i_csp = X264_CSP_I420;
++    x4->pic.img.i_plane = 3;
++
++    for(i = 0; i < 3; i++){
++	x4->pic.img.plane[i] = frame->data[i];
++	x4->pic.img.i_stride[i] = frame->linesize[i];
++    }
++
++    x4->pic.i_pts = frame->pts;
++    x4->pic.i_type = X264_TYPE_AUTO;
++
++    if(x264_encoder_encode(x4->enc, &nal, &nnal, &x4->pic, &pic_out))
++	return -1;
++
++    bufsize = encode_nals(buf, bufsize, nal, nnal);
++    if(bufsize < 0)
++	return -1;
++
++    /* FIXME: dts */
++    x4->out_pic.pts = pic_out.i_pts;
++
++    switch(pic_out.i_type){
++    case X264_TYPE_IDR:
++    case X264_TYPE_I:
++        x4->out_pic.pict_type = FF_I_TYPE;
++        break;
++    case X264_TYPE_P:
++        x4->out_pic.pict_type = FF_P_TYPE;
++        break;
++    case X264_TYPE_B:
++    case X264_TYPE_BREF:
++        x4->out_pic.pict_type = FF_B_TYPE;
++        break;
++    }
++
++    x4->out_pic.key_frame = x4->out_pic.key_frame == FF_I_TYPE;
++
++    return bufsize;
++}
++
++static int
++X264_close(AVCodecContext *avctx)
++{
++    X264Context *x4 = avctx->priv_data;
++
++    if(x4->enc)
++	x264_encoder_close(x4->enc);
++
++    return 0;
++}
++
++extern int
++X264_init(AVCodecContext *avctx)
++{
++    X264Context *x4 = avctx->priv_data;
++
++    x264_param_default(&x4->params);
++
++    x4->params.pf_log = X264_log;
++    x4->params.p_log_private = avctx;
++
++    x4->params.i_keyint_max = avctx->gop_size;
++    x4->params.rc.i_bitrate = avctx->bit_rate / 1000;
++    x4->params.rc.i_rc_buffer_size = avctx->rc_buffer_size / 1000;
++    if(avctx->rc_buffer_size)
++        x4->params.rc.b_cbr = 1;
++    x4->params.rc.i_qp_min = avctx->qmin;
++    x4->params.rc.i_qp_max = avctx->qmax;
++    x4->params.rc.i_qp_step = avctx->max_qdiff;
++
++    x4->params.i_width = avctx->width;
++    x4->params.i_height = avctx->height;
++    x4->params.vui.i_sar_width = avctx->sample_aspect_ratio.num;
++    x4->params.vui.i_sar_height = avctx->sample_aspect_ratio.den;
++    x4->params.i_fps_num = avctx->frame_rate;
++    x4->params.i_fps_den = avctx->frame_rate_base;
++
++    x4->enc = x264_encoder_open(&x4->params);
++    if(!x4->enc)
++        return -1;
++
++    avctx->coded_frame = &x4->out_pic;
++
++    return 0;
++}
++
++AVCodec x264_encoder = {
++    .name = "h264",
++    .type = CODEC_TYPE_VIDEO,
++    .id = CODEC_ID_H264,
++    .priv_data_size = sizeof(X264Context),
++    .init = X264_init,
++    .encode = X264_frame,
++    .close = X264_close,
++    .pix_fmts = (enum PixelFormat[]) { PIX_FMT_YUV420P, -1 }
++};

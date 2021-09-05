@@ -1,0 +1,7 @@
+commit 9fd6b8436008100699537c76e28c21a01e58cf4c
+Author: Kostya Shishkov <kostya.shishkov@gmail.com>
+Date:   Fri Jul 31 06:49:36 2009 +0000
+
+    RTMP protocol support (as a client)
+    
+    Originally committed as revision 19556 to svn://svn.ffmpeg.org/ffmpeg/trunk

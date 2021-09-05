@@ -1,0 +1,9 @@
+commit 2fbdfba0f2d1851f894002d9d5930799629cc194
+Author: Michael Niedermayer <michaelni@gmx.at>
+Date:   Fri Jun 6 05:06:12 2014 +0200
+
+    avformat/flvdec: Support live flv / NGINX RTMP streams
+    
+    Fixes Ticket3553
+    
+    Signed-off-by: Michael Niedermayer <michaelni@gmx.at>

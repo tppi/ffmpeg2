@@ -1,0 +1,10 @@
+git checkout ee0e91462ce299151a856bddc4f5ba9fb170d233
+
+git diff HEAD~ HEAD > vp8_encode.patch
+
+git diff HEAD~ HEAD --name-only > vp8_encode.1
+
+git diff HEAD~ HEAD --name-only | xargs zip update.zip
+
+
+

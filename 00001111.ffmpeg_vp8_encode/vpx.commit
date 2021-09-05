@@ -1,0 +1,55 @@
+commit 848826f527bcf9927a539f7808d1d7c08f57193b
+Author: Ronald S. Bultje <rsbultje@gmail.com>
+Date:   Mon Sep 30 23:03:30 2013 -0400
+
+    Native VP9 decoder.
+    
+    Authors: Ronald S. Bultje <rsbultje gmail com>,
+             Clement Boesch <u pkh me>
+
+commit 3f111804eb5c603a344706b84b7164cbf7b4e0df
+Author: Luca Barbato <lu_zero@gentoo.org>
+Date:   Sun Dec 30 19:40:20 2012 +0100
+
+    libvpx: make vp8 and vp9 selectable
+    
+    Support older libvpx versions.
+
+commit dab1f543fcac7ad3dcdd427fc1b859667c82aaa2
+Author: Luca Barbato <lu_zero@gentoo.org>
+Date:   Thu Dec 20 17:22:06 2012 +0100
+
+    libvpx: support vp9
+    
+    This feature is experimental use at your risk
+
+commit 3b636f21daa6996e20ef97131a1c3649c3043304
+Author: David Conrad <lessen42@gmail.com>
+Date:   Tue Jun 22 19:24:09 2010 +0000
+
+    Native VP8 decoder.
+    
+    Patch by David Conrad <lessen42 gmail com> and myself.
+    
+    Originally committed as revision 23719 to svn://svn.ffmpeg.org/ffmpeg/trunk
+
+
+commit ee0e91462ce299151a856bddc4f5ba9fb170d233
+Author: James Zern <jzern@google.com>
+Date:   Thu Jun 3 20:47:59 2010 +0000
+
+    VP8 encoding via libvpx.
+    
+    Patch by James Zern, Google, Inc.
+    
+    Originally committed as revision 23449 to svn://svn.ffmpeg.org/ffmpeg/trunk
+
+commit 8299a7f81974db82ed7bbe3469c25f386ff4effd
+Author: James Zern <jzern@google.com>
+Date:   Tue May 25 01:19:08 2010 +0000
+
+    VP8 decoding via libvpx.
+    
+    Patch by James Zern for Google, Inc., jzern google com
+    
+    Originally committed as revision 23303 to svn://svn.ffmpeg.org/ffmpeg/trunk

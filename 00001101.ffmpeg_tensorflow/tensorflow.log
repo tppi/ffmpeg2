@@ -1,0 +1,453 @@
+commit 60b4d07cf65c9dd949155989591979299a7ee9d4
+Author: Shubhanshu Saxena <shubhanshu.e01@gmail.com>
+Date:   Thu Aug 26 02:40:45 2021 +0530
+
+    libavfilter: Unify Execution Modes in DNN Filters
+    
+    This commit unifies the async and sync mode from the DNN filters'
+    perspective. As of this commit, the Native backend only supports
+    synchronous execution mode.
+    
+    Now the user can switch between async and sync mode by using the
+    'async' option in the backend_configs. The values can be 1 for
+    async and 0 for sync mode of execution.
+    
+    This commit affects the following filters:
+    1. vf_dnn_classify
+    2. vf_dnn_detect
+    3. vf_dnn_processing
+    4. vf_sr
+    5. vf_derain
+    
+    This commit also updates the filters vf_dnn_detect and vf_dnn_classify
+    to send only the input frame and send NULL as output frame instead of
+    input frame to the DNN backends.
+    
+    Signed-off-by: Shubhanshu Saxena <shubhanshu.e01@gmail.com>
+
+commit c38bc5634d8eb4540cb8dfa616eafcc0b3c85e59
+Author: Ting Fu <ting.fu@intel.com>
+Date:   Thu May 6 16:46:10 2021 +0800
+
+    dnn/vf_dnn_detect.c: add tensorflow output parse support
+    
+    Testing model is tensorflow offical model in github repo, please refer
+    https://github.com/tensorflow/models/blob/master/research/object_detection/g3doc/tf2_detection_zoo.md
+    to download the detect model as you need.
+    For example, local testing was carried on with 'ssd_mobilenet_v2_coco_2018_03_29.tar.gz', and
+    used one image of dog in
+    https://github.com/tensorflow/models/blob/master/research/object_detection/test_images/image1.jpg
+    
+    Testing command is:
+    ./ffmpeg -i image1.jpg -vf dnn_detect=dnn_backend=tensorflow:input=image_tensor:output=\
+    "num_detections&detection_scores&detection_classes&detection_boxes":model=ssd_mobilenet_v2_coco.pb,\
+    showinfo -f null -
+    
+    We will see the result similar as below:
+    [Parsed_showinfo_1 @ 0x33e65f0]   side data - detection bounding boxes:
+    [Parsed_showinfo_1 @ 0x33e65f0] source: ssd_mobilenet_v2_coco.pb
+    [Parsed_showinfo_1 @ 0x33e65f0] index: 0,       region: (382, 60) -> (1005, 593), label: 18, confidence: 9834/10000.
+    [Parsed_showinfo_1 @ 0x33e65f0] index: 1,       region: (12, 8) -> (328, 549), label: 18, confidence: 8555/10000.
+    [Parsed_showinfo_1 @ 0x33e65f0] index: 2,       region: (293, 7) -> (682, 458), label: 1, confidence: 8033/10000.
+    [Parsed_showinfo_1 @ 0x33e65f0] index: 3,       region: (342, 0) -> (690, 325), label: 1, confidence: 5878/10000.
+    
+    There are two boxes of dog with cores 94.05% & 93.45% and two boxes of person with scores 80.33% & 58.78%.
+    
+    Signed-off-by: Ting Fu <ting.fu@intel.com>
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit e42125edab9f6bbc3297334087608565218e119b
+Author: Ting Fu <ting.fu@intel.com>
+Date:   Thu May 6 16:46:09 2021 +0800
+
+    lavfi/dnn_backend_tensorflow: support detect model
+    
+    Signed-off-by: Ting Fu <ting.fu@intel.com>
+
+commit 41ef57fdb27c9583e61af8eea1ba710314cd86e5
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Wed Mar 17 14:08:38 2021 +0800
+
+    lavfi/dnn_classify: add filter dnn_classify for classification based on detection bounding boxes
+    
+    classification is done on every detection bounding box in frame's side data,
+    which are the results of object detection (filter dnn_detect).
+    
+    Please refer to commit log of dnn_detect for the material for detection,
+    and see below for classification.
+    
+    - download material for classifcation:
+    wget https://github.com/guoyejun/ffmpeg_dnn/raw/main/models/openvino/2021.1/emotions-recognition-retail-0003.bin
+    wget https://github.com/guoyejun/ffmpeg_dnn/raw/main/models/openvino/2021.1/emotions-recognition-retail-0003.xml
+    wget https://github.com/guoyejun/ffmpeg_dnn/raw/main/models/openvino/2021.1/emotions-recognition-retail-0003.label
+    
+    - run command as:
+    ./ffmpeg -i cici.jpg -vf dnn_detect=dnn_backend=openvino:model=face-detection-adas-0001.xml:input=data:output=detection_out:confidence=0.6:labels=face-detection-adas-0001.label,dnn_classify=dnn_backend=openvino:model=emotions-recognition-retail-0003.xml:input=data:output=prob_emotion:confidence=0.3:labels=emotions-recognition-retail-0003.label:target=face,showinfo -f null -
+    
+    We'll see the detect&classify result as below:
+    [Parsed_showinfo_2 @ 0x55b7d25e77c0]   side data - detection bounding boxes:
+    [Parsed_showinfo_2 @ 0x55b7d25e77c0] source: face-detection-adas-0001.xml, emotions-recognition-retail-0003.xml
+    [Parsed_showinfo_2 @ 0x55b7d25e77c0] index: 0,  region: (1005, 813) -> (1086, 905), label: face, confidence: 10000/10000.
+    [Parsed_showinfo_2 @ 0x55b7d25e77c0]            classify:  label: happy, confidence: 6757/10000.
+    [Parsed_showinfo_2 @ 0x55b7d25e77c0] index: 1,  region: (888, 839) -> (967, 926), label: face, confidence: 6917/10000.
+    [Parsed_showinfo_2 @ 0x55b7d25e77c0]            classify:  label: anger, confidence: 4320/10000.
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit fc26dca64e0e5d20bb0fcc8743d073cf5b107264
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Tue Mar 16 13:02:56 2021 +0800
+
+    lavfi/dnn: add classify support with openvino backend
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit 829d7bb518d405e7d9fcca79c6897fd33518c92e
+Author: Limin Wang <lance.lmwang@gmail.com>
+Date:   Thu Apr 29 20:46:10 2021 +0800
+
+    doc/filters: Documentation to add sess_config option for tensorflow backend
+    
+    Signed-off-by: Limin Wang <lance.lmwang@gmail.com>
+
+commit f183d6555e714e00b41aec728feb8a731826cbdc
+Author: Limin Wang <lance.lmwang@gmail.com>
+Date:   Wed Apr 28 18:47:08 2021 +0800
+
+    avfilter/dnn/dnn_backend_tf: simplify the code with ff_hex_to_data
+    
+    please use tools/python/tf_sess_config.py to get the sess_config after that.
+    note the byte order of session config is in normal order.
+    bump the MICRO version for the config change.
+    
+    Signed-off-by: Limin Wang <lance.lmwang@gmail.com>
+
+commit aa9ffdaa1eaeb5e16fb6b89852f38ff488d81173
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Sun Feb 7 14:36:13 2021 +0800
+
+    lavfi: add filter dnn_detect for object detection
+    
+    Below are the example steps to do object detection:
+    
+    1. download and install l_openvino_toolkit_p_2021.1.110.tgz from
+    https://software.intel.com/content/www/us/en/develop/tools/openvino-toolkit/download.html
+      or, we can get source code (tag 2021.1), build and install.
+    2. export LD_LIBRARY_PATH with openvino settings, for example:
+    .../deployment_tools/inference_engine/lib/intel64/:.../deployment_tools/inference_engine/external/tbb/lib/
+    3. rebuild ffmpeg from source code with configure option:
+    --enable-libopenvino
+    --extra-cflags='-I.../deployment_tools/inference_engine/include/'
+    --extra-ldflags='-L.../deployment_tools/inference_engine/lib/intel64'
+    4. download model files and test image
+    wget https://github.com/guoyejun/ffmpeg_dnn/raw/main/models/openvino/2021.1/face-detection-adas-0001.bin
+    wget https://github.com/guoyejun/ffmpeg_dnn/raw/main/models/openvino/2021.1/face-detection-adas-0001.xml
+    wget
+    https://github.com/guoyejun/ffmpeg_dnn/raw/main/models/openvino/2021.1/face-detection-adas-0001.label
+    wget https://github.com/guoyejun/ffmpeg_dnn/raw/main/images/cici.jpg
+    5. run ffmpeg with:
+    ./ffmpeg -i cici.jpg -vf dnn_detect=dnn_backend=openvino:model=face-detection-adas-0001.xml:input=data:output=detection_out:confidence=0.6:labels=face-detection-adas-0001.label,showinfo -f null -
+    
+    We'll see the detect result as below:
+    [Parsed_showinfo_1 @ 0x560c21ecbe40]   side data - detection bounding boxes:
+    [Parsed_showinfo_1 @ 0x560c21ecbe40] source: face-detection-adas-0001.xml
+    [Parsed_showinfo_1 @ 0x560c21ecbe40] index: 0,  region: (1005, 813) -> (1086, 905), label: face, confidence: 10000/10000.
+    [Parsed_showinfo_1 @ 0x560c21ecbe40] index: 1,  region: (888, 839) -> (967, 926), label: face, confidence: 6917/10000.
+    
+    There are two faces detected with confidence 100% and 69.17%.
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit 2da3a5c10f5249b21b8e37d1f354085178b0ffc3
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Sun Feb 7 15:03:43 2021 +0800
+
+    dnn: add color conversion for analytic case
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit c4a3dbe726150d9217a4d3fed47b012839e33d82
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Mon Oct 12 15:52:26 2020 +0800
+
+    dnn_backend_tf.c: add option sess_config for tf backend
+    
+    TensorFlow C library accepts config for session options to
+    set different parameters for the inference. This patch exports
+    this interface.
+    
+    The config is a serialized tensorflow.ConfigProto proto, so we need
+    two steps to use it:
+    1. generate the serialized proto with python (see script example below)
+    the output looks like: 0xab...cd
+    where 0xcd is the least significant byte and 0xab is the most significant byte.
+    
+    2. pass the python script output into ffmpeg with
+    dnn_processing=options=sess_config=0xab...cd
+    
+    The following script is an example to specify one GPU. If the system contains
+    3 GPU cards, the visible_device_list could be '0', '1', '2', '0,1' etc.
+    '0' does not mean physical GPU card 0, we need to try and see.
+    And we can also add more opitions here to generate more serialized proto.
+    
+    script example to generate serialized proto which specifies one GPU:
+    import tensorflow as tf
+    gpu_options = tf.GPUOptions(visible_device_list='0')
+    config = tf.ConfigProto(gpu_options=gpu_options)
+    s = config.SerializeToString()
+    b = ''.join("%02x" % int(ord(b)) for b in s[::-1])
+    print('0x%s' % b)
+
+commit 4a11a6f4ccc7c56ccc82adf0c3ab4054d4c22d1e
+Author: Ting Fu <ting.fu@intel.com>
+Date:   Thu Aug 27 12:17:22 2020 +0800
+
+    dnn/tensorflow: add log error message
+    
+    Signed-off-by: Ting Fu <ting.fu@intel.com>
+
+commit de5cb6c060236c4667eac1006dfd1e54f06bde9f
+Author: Ting Fu <ting.fu@intel.com>
+Date:   Mon Aug 10 00:33:14 2020 +0800
+
+    FATE/dnn: add unit test for dnn avgpool layer
+    
+    'make fate-dnn-layer-avgpool' to run the test
+    
+    Signed-off-by: Ting Fu <ting.fu@intel.com>
+    Reviewed-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit 91efc41a69f223bd1ed92b8916ad9e9de63e9d9e
+Author: Ting Fu <ting.fu@intel.com>
+Date:   Mon Aug 10 00:33:13 2020 +0800
+
+    dnn/native: add native support for avg_pool
+    
+    Not support pooling strides in channel dimension yet.
+    
+    Signed-off-by: Ting Fu <ting.fu@intel.com>
+    Reviewed-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit 7e4527e8fa1f8f0bba6a7f7cadc407813f17fbd1
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Fri Mar 20 20:54:07 2020 +0800
+
+    avfilter/vf_derain.c: put all the calculation in model file.
+    
+    currently, the model outputs the rain, and so need a subtraction
+    in filter c code to get the final derain result.
+    
+    I've sent a PR to update the model file and accepted, see at
+    https://github.com/XueweiMeng/derain_filter/pull/3
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+    Signed-off-by: Steven Liu <lq@chinaffmpeg.org>
+
+commit e35f96685312c70f7c1cfaadeb966bce1976eb1b
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Fri Feb 21 20:40:07 2020 +0800
+
+    avfilter/vf_dnn_processing.c: add frame size change support for planar yuv format
+    
+    The Y channel is handled by dnn, and also resized by dnn. The UV channels
+    are resized with swscale.
+    
+    The command to use espcn.pb (see vf_sr) looks like:
+    ./ffmpeg -i 480p.jpg -vf format=yuv420p,dnn_processing=dnn_backend=tensorflow:model=espcn.pb:input=x:output=y -y tmp.espcn.jpg
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+    Reviewed-by: Pedro Arthur <bygrandao@gmail.com>
+
+commit bd50453894182af095c7d7578596e6ff6c58f852
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Fri Feb 21 14:20:48 2020 +0800
+
+    avfilter/vf_dnn_processing.c: add planar yuv format support
+    
+    Only the Y channel is handled by dnn, the UV channels are copied
+    without changes.
+    
+    The command to use srcnn.pb (see vf_sr) looks like:
+    ./ffmpeg -i 480p.jpg -vf format=yuv420p,scale=w=iw*2:h=ih*2,dnn_processing=dnn_backend=tensorflow:model=srcnn.pb:input=x:output=y -y srcnn.jpg
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+    Reviewed-by: Pedro Arthur <bygrandao@gmail.com>
+
+commit 4d980a8ceba9d0b7cc9f34a5f5cd769a4d7c2773
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Thu Oct 31 16:33:02 2019 +0800
+
+    avfilter/vf_dnn_processing: add a generic filter for image proccessing with dnn networks
+    
+    This filter accepts all the dnn networks which do image processing.
+    Currently, frame with formats rgb24 and bgr24 are supported. Other
+    formats such as gray and YUV will be supported next. The dnn network
+    can accept data in float32 or uint8 format. And the dnn network can
+    change frame size.
+    
+    The following is a python script to halve the value of the first
+    channel of the pixel. It demos how to setup and execute dnn model
+    with python+tensorflow. It also generates .pb file which will be
+    used by ffmpeg.
+    
+    import tensorflow as tf
+    import numpy as np
+    import imageio
+    in_img = imageio.imread('in.bmp')
+    in_img = in_img.astype(np.float32)/255.0
+    in_data = in_img[np.newaxis, :]
+    filter_data = np.array([0.5, 0, 0, 0, 1., 0, 0, 0, 1.]).reshape(1,1,3,3).astype(np.float32)
+    filter = tf.Variable(filter_data)
+    x = tf.placeholder(tf.float32, shape=[1, None, None, 3], name='dnn_in')
+    y = tf.nn.conv2d(x, filter, strides=[1, 1, 1, 1], padding='VALID', name='dnn_out')
+    sess=tf.Session()
+    sess.run(tf.global_variables_initializer())
+    output = sess.run(y, feed_dict={x: in_data})
+    graph_def = tf.graph_util.convert_variables_to_constants(sess, sess.graph_def, ['dnn_out'])
+    tf.train.write_graph(graph_def, '.', 'halve_first_channel.pb', as_text=False)
+    output = output * 255.0
+    output = output.astype(np.uint8)
+    imageio.imsave("out.bmp", np.squeeze(output))
+    
+    To do the same thing with ffmpeg:
+    - generate halve_first_channel.pb with the above script
+    - generate halve_first_channel.model with tools/python/convert.py
+    - try with following commands
+      ./ffmpeg -i input.jpg -vf dnn_processing=model=halve_first_channel.model:input=dnn_in:output=dnn_out:fmt=rgb24:dnn_backend=native -y out.native.png
+      ./ffmpeg -i input.jpg -vf dnn_processing=model=halve_first_channel.pb:input=dnn_in:output=dnn_out:fmt=rgb24:dnn_backend=tensorflow -y out.tf.png
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+    Signed-off-by: Pedro Arthur <bygrandao@gmail.com>
+
+commit b78dc27bba2cc612643df7e9c84addc142273e71
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Wed Oct 9 22:08:04 2019 +0800
+
+    avfilter/dnn: add DLT prefix for enum DNNLayerType to avoid potential conflicts
+    
+    and also change CONV to DLT_CONV2D for better description
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+    Signed-off-by: Pedro Arthur <bygrandao@gmail.com>
+
+commit c87237d10511a28a3cfb7bb88ed2af1907dc8f66
+Author: Xuewei Meng <xwmeng96@gmail.com>
+Date:   Sat Jul 27 10:59:26 2019 +0800
+
+    libavfilter: Update derain filter doc.
+    
+    Add the usage of tensorflow model in derain filter. Training scripts
+    as well as scripts for tf/native model generation are provided in the
+    repository at https://github.com/XueweiMeng/derain_filter.git.
+    
+    Reviewed-by: Steven Liu <lq@onvideo.cn>
+    Signed-off-by: Xuewei Meng <xwmeng96@gmail.com>
+
+commit 1b9064e3f4ca4cf744f5112c02b31ffd1b44f4c4
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Tue Jul 16 13:55:45 2019 +0800
+
+    libavfilter/dnn: move dnn files from libavfilter to libavfilter/dnn
+    
+    it is expected that there will be more files to support native mode,
+    so put all the dnn codes under libavfilter/dnn
+    
+    The main change of this patch is to move the file location, see below:
+    modified:   libavfilter/Makefile
+    new file:   libavfilter/dnn/Makefile
+    renamed:    libavfilter/dnn_backend_native.c -> libavfilter/dnn/dnn_backend_native.c
+    renamed:    libavfilter/dnn_backend_native.h -> libavfilter/dnn/dnn_backend_native.h
+    renamed:    libavfilter/dnn_backend_tf.c -> libavfilter/dnn/dnn_backend_tf.c
+    renamed:    libavfilter/dnn_backend_tf.h -> libavfilter/dnn/dnn_backend_tf.h
+    renamed:    libavfilter/dnn_interface.c -> libavfilter/dnn/dnn_interface.c
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+    Signed-off-by: Pedro Arthur <bygrandao@gmail.com>
+
+commit 50e194e6e126b7fe8e91ecc2e929335d4dc64fcf
+Author: Guo, Yejun <yejun.guo@intel.com>
+Date:   Thu Jun 13 13:30:38 2019 +0800
+
+    tools/python: add script to convert TensorFlow model (.pb) to native model (.model)
+    
+    For example, given TensorFlow model file espcn.pb,
+    to generate native model file espcn.model, just run:
+    python convert.py espcn.pb
+    
+    In current implementation, the native model file is generated for
+    specific dnn network with hard-code python scripts maintained out of ffmpeg.
+    For example, srcnn network used by vf_sr is generated with
+    https://github.com/HighVoltageRocknRoll/sr/blob/master/generate_header_and_model.py#L85
+    
+    In this patch, the script is designed as a general solution which
+    converts general TensorFlow model .pb file into .model file. The script
+    now has some tricky to be compatible with current implemention, will
+    be refined step by step.
+    
+    The script is also added into ffmpeg source tree. It is expected there
+    will be many more patches and community needs the ownership of it.
+    
+    Another technical direction is to do the conversion in c/c++ code within
+    ffmpeg source tree. While .pb file is organized with protocol buffers,
+    it is not easy to do such work with tiny c/c++ code, see more discussion
+    at http://ffmpeg.org/pipermail/ffmpeg-devel/2019-May/244496.html. So,
+    choose the python script.
+    
+    Signed-off-by: Guo, Yejun <yejun.guo@intel.com>
+
+commit 78e1d7f42110aec8d4cd703a7939c64b5a191952
+Author: Xuewei Meng <xwmeng96@gmail.com>
+Date:   Thu May 30 20:35:17 2019 +0800
+
+    libavfilter: Add derain filter
+    
+    Remove the rain in the input image/video by applying the derain
+    methods based on convolutional neural networks. Training scripts
+    as well as scripts for model generation are provided in the
+    repository at https://github.com/XueweiMeng/derain_filter.git.
+    
+    Signed-off-by: Xuewei Meng <xwmeng96@gmail.com>
+
+commit 4b0033220361a6b61454da84f8bdf7f801ceda52
+Author: Steven Liu <lq@chinaffmpeg.org>
+Date:   Mon Sep 24 22:02:54 2018 +0800
+
+    avfilter/sr: process and output message when load_model is NULL
+    
+    fix ticket: 7455
+    
+    Reviewed-by: Pedro Arthur <bygrandao@gmail.com>
+    Reviewed-by: Paul B Mahol <onemda@gmail.com>
+    Signed-off-by: Steven Liu <lq@chinaffmpeg.org>
+
+commit 4f8e65c45884d91ac300caac37b55c8ca504288b
+Author: Sergey Lavrushkin <dualfal@gmail.com>
+Date:   Wed Aug 15 19:35:09 2018 +0300
+
+    doc/filters: Add entry for sr filter.
+    
+    Signed-off-by: Gyan Doshi <ffmpeg@gyani.pro>
+
+commit 575b7189908e1cfa55104b0d2c7c9f6ea30ca2dc
+Author: Sergey Lavrushkin <dualfal@gmail.com>
+Date:   Thu Jun 14 00:37:12 2018 +0300
+
+    Adds ESPCN super resolution filter merged with SRCNN filter.
+    
+    Signed-off-by: Pedro Arthur <bygrandao@gmail.com>
+
+commit d29c35b4d8f1ce93058697e9819fda8684928109
+Author: Sergey Lavrushkin <dualfal@gmail.com>
+Date:   Wed Jun 6 01:44:40 2018 +0300
+
+    libavfilter/vf_srcnn.c: adds DNN module backend AVOption, changes AV_LOG_INFO message to AV_LOG_VERBOSE.
+    
+    Signed-off-by: Pedro Arthur <bygrandao@gmail.com>
+
+commit d8c0bbb0aa45eed61b159c4842473fe27e77ac12
+Author: Sergey Lavrushkin <dualfal@gmail.com>
+Date:   Sun Jun 3 20:22:50 2018 +0300
+
+    Adds TensorFlow backend for dnn inference module.
+    
+    Signed-off-by: Pedro Arthur <bygrandao@gmail.com>

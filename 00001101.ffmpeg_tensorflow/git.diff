@@ -1,0 +1,10 @@
+git checkout d8c0bbb0aa45eed61b159c4842473fe27e77ac12
+
+git diff HEAD~ HEAD > tensorflow.patch
+
+git diff HEAD~ HEAD --name-only > tensorflow.1
+
+git diff HEAD~ HEAD --name-only | xargs zip update.zip
+
+
+

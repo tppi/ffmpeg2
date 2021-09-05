@@ -1,0 +1,10 @@
+git checkout 8299a7f81974db82ed7bbe3469c25f386ff4effd
+
+git diff HEAD~ HEAD > vpx_decode.patch
+
+git diff HEAD~ HEAD --name-only > vpx_decode.1
+
+git diff HEAD~ HEAD --name-only | xargs zip update.zip
+
+
+

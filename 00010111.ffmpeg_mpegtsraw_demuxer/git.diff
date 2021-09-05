@@ -1,0 +1,10 @@
+git checkout 769168632764a2011f6ed24786e3fa34a214190b
+
+git diff HEAD~ HEAD > mpegtsraw_demuxer.patch
+
+git diff HEAD~ HEAD --name-only > mpegtsraw_demuxer.1
+
+git diff HEAD~ HEAD --name-only | xargs zip update.zip
+
+
+

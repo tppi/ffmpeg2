@@ -1,0 +1,24 @@
+diff --git a/libavformat/allformats.c b/libavformat/allformats.c
+index 84ba067..6c5f6de 100644
+--- a/libavformat/allformats.c
++++ b/libavformat/allformats.c
+@@ -110,6 +110,7 @@ void av_register_all(void)
+     REGISTER_MUXER   (MPEG2VOB, mpeg2vob);
+     REGISTER_DEMUXER (MPEGPS, mpegps);
+     REGISTER_MUXDEMUX(MPEGTS, mpegts);
++    REGISTER_DEMUXER (MPEGTSRAW, mpegtsraw);
+     REGISTER_DEMUXER (MPEGVIDEO, mpegvideo);
+     REGISTER_MUXER   (MPJPEG, mpjpeg);
+     REGISTER_DEMUXER (MTV, mtv);
+diff --git a/libavformat/allformats.h b/libavformat/allformats.h
+index 4c9a904..2185d36 100644
+--- a/libavformat/allformats.h
++++ b/libavformat/allformats.h
+@@ -71,6 +71,7 @@ extern AVInputFormat mp3_demuxer;
+ extern AVInputFormat mpc_demuxer;
+ extern AVInputFormat mpegps_demuxer;
+ extern AVInputFormat mpegts_demuxer;
++extern AVInputFormat mpegtsraw_demuxer;
+ extern AVInputFormat mpegvideo_demuxer;
+ extern AVInputFormat mtv_demuxer;
+ extern AVInputFormat mxf_demuxer;

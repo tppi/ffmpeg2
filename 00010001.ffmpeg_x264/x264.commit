@@ -1,0 +1,7 @@
+commit 6662ec29a5133bf4b81e0a1edf369b97cb6734ba
+Author: Michael Niedermayer <michaelni@gmx.at>
+Date:   Wed Mar 9 03:04:56 2005 +0000
+
+    H.264 encoding with x264 by (Måns Rullgård <mru inprovide com>)
+    
+    Originally committed as revision 4024 to svn://svn.ffmpeg.org/ffmpeg/trunk
