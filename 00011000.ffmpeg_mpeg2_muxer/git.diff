@@ -1,0 +1,10 @@
+git checkout fb7566d082e80d2baeb07fcb34176203596805a0
+
+git diff HEAD~ HEAD > mpeg2_muxer.patch
+
+git diff HEAD~ HEAD --name-only > mpeg2_muxer.1
+
+git diff HEAD~ HEAD --name-only | xargs zip update.zip
+
+
+

@@ -1,0 +1,7 @@
+commit db7f1f95acc050bb5ddf62b0008eab8c8305d369
+Author: Fabrice Bellard <fabrice@bellard.org>
+Date:   Mon May 20 16:29:40 2002 +0000
+
+    suppressed mpeg demux mess - use now dynamic stream creation api
+    
+    Originally committed as revision 546 to svn://svn.ffmpeg.org/ffmpeg/trunk

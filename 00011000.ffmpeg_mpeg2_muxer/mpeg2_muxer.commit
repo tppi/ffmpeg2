@@ -1,0 +1,7 @@
+commit fb7566d082e80d2baeb07fcb34176203596805a0
+Author: Fabrice Bellard <fabrice@bellard.org>
+Date:   Tue Oct 15 10:22:23 2002 +0000
+
+    better framework for specific mpeg mux options such as vcd - added (incomplete) mpeg2 vob muxer for dvd creation
+    
+    Originally committed as revision 1042 to svn://svn.ffmpeg.org/ffmpeg/trunk
